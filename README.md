@@ -50,44 +50,33 @@ Masz trzy klucze do zebrania. Będziesz je używał w krokach poniżej.
    - **Base directory**: *(zostaw puste)*
    - **Build command**: *(zostaw puste)*
    - **Publish directory**: `.`
-5. Kliknij **Deploy** — pierwsze wdrożenie zakończy się błędem braku kluczy, to normalne na tym etapie.
 
-### 2b. Dodaj klucze API w panelu Netlify
+### 2b. Dodaj klucze API — jeszcze przed deployem
 
-Klucze wpisujesz bezpośrednio w panelu Netlify — **nie ma tu żadnych plików do edytowania**.
-Netlify przekazuje je do funkcji serverless działających po stronie serwera.
+Na tym samym ekranie, przed kliknięciem Deploy, zobaczysz sekcję **Environment variables**.
+Dodaj klucze teraz — dzięki temu pierwsze wdrożenie od razu zadziała poprawnie.
 
-1. W panelu projektu kliknij **Project configuration** w lewym menu
-   *(w starszym UI może być: "Site configuration")*.
-2. Wybierz **Environment variables** z podmenu.
-3. Kliknij **Add a variable → Add a single variable**.
-4. Dodaj trzy zmienne — dla każdej wypełnij formularz i kliknij **Save**:
+Kliknij **Add environment variables** i dodaj trzy zmienne:
 
 **Zmienna 1**
 - Key: `TMDB_API_KEY`
 - Value: *(twój klucz z themoviedb.org)*
-- Scopes: zaznacz **Functions** ✓
 
 **Zmienna 2**
 - Key: `SUPABASE_URL`
 - Value: *(Project URL skopiowany z Supabase, np. `https://abcdefgh.supabase.co`)*
-- Scopes: zaznacz **Functions** ✓
 
 **Zmienna 3**
 - Key: `SUPABASE_ANON_KEY`
 - Value: *(anon key skopiowany z Supabase, zaczyna się od `eyJ...`)*
-- Scopes: zaznacz **Functions** ✓
 
-> **Dlaczego scope „Functions"?** Aplikacja używa funkcji serverless Netlify jako pośrednika
-> do API — to one czytają klucze i odpytują TMDB/Supabase. Bez tego scope'u funkcja nie
-> widzi zmiennej i zgłasza błąd.
+> **Uwaga:** jeśli Netlify pyta o scope zmiennych, zaznacz **Functions**.
+> Bez tego funkcje serverless nie widzą kluczy i aplikacja nie zadziała.
 
-### 2c. Wyzwól ponowny deploy
+### 2c. Kliknij Deploy
 
-1. Przejdź do zakładki **Deploys**.
-2. Kliknij **Trigger deploy → Deploy site**.
-3. Poczekaj ~1–2 minuty na zakończenie.
-4. Aplikacja gotowa pod adresem `https://twoja-strona.netlify.app`.
+Po dodaniu zmiennych kliknij **Deploy Tinder-For-Movies**.
+Poczekaj ~1–2 minuty. Aplikacja gotowa pod adresem `https://twoja-strona.netlify.app`.
 
 ---
 
