@@ -47,6 +47,10 @@ Tinder-For-Movies/
 │                                    # Ustawia katalog funkcji i przekierowania:
 │                                    # /api/* → /.netlify/functions/*
 │
+├── server.js                        # Lokalny serwer dev (zastępuje netlify dev)
+│                                    # Uruchom: node server.js → http://localhost:3000
+│                                    # Wczytuje .env i obsługuje /api/config, /api/movies
+│
 ├── supabase.sql                     # Schemat bazy danych do uruchomienia w Supabase
 │                                    # Tworzy tabele: sessions, votes
 │                                    # Konfiguruje RLS (bezpieczeństwo) i Realtime
@@ -100,7 +104,14 @@ Przed startem zarejestruj się i pobierz klucze z trzech serwisów:
 1. Zaloguj się na [supabase.com/dashboard](https://supabase.com/dashboard) i utwórz nowy projekt.
 2. W lewym menu kliknij **SQL Editor**.
 3. Otwórz plik `supabase.sql` z tego repozytorium, skopiuj całą zawartość i wklej do edytora. Kliknij **Run**.
-4. Przejdź do **Project Settings → API** i skopiuj dwie wartości:
+4. W tym samym SQL Editor uruchom osobno poniższy fragment — bez tego rola `anon` nie ma uprawnień do zapisu i odczytu tabel, co objawia się błędem `permission denied for table sessions`:
+
+```sql
+GRANT ALL ON TABLE sessions TO anon, authenticated;
+GRANT ALL ON TABLE votes TO anon, authenticated;
+```
+
+5. Przejdź do **Project Settings → API** i skopiuj dwie wartości:
    - **Project URL** (wygląda tak: `https://abcdefgh.supabase.co`)
    - **anon / public** key (długi ciąg zaczynający się od `eyJ...`)
 
@@ -151,23 +162,18 @@ Po zapisaniu wszystkich zmiennych aplikacja potrzebuje nowego deployu, żeby je 
 
 ---
 
-## Uruchomienie lokalne (opcjonalnie)
+## Uruchomienie lokalne
 
-Jeśli chcesz testować aplikację na swoim komputerze zamiast przez Netlify, potrzebujesz
-pliku `.env` — jest to lokalny odpowiednik zmiennych środowiskowych z panelu Netlify.
+Do lokalnego testowania służy plik `server.js` — prosty serwer Node.js, który zastępuje
+Netlify CLI. Nie wymaga żadnych dodatkowych zależności ani instalacji.
 
-**Czym jest plik `.env`?**
-To zwykły plik tekstowy z kluczami API, który istnieje tylko na Twoim komputerze.
-Nie jest commitowany do repozytorium Git (jest w `.gitignore`).
-Każdy deweloper tworzy go lokalnie na podstawie szablonu `.env.example`.
-
-**Jak go utworzyć:**
+**Krok 1 — utwórz plik `.env`:**
 
 ```bash
 cp .env.example .env
 ```
 
-Następnie otwórz plik `.env` w edytorze i wpisz swoje klucze:
+Otwórz `.env` i wpisz swoje klucze:
 
 ```
 TMDB_API_KEY=tu_wklej_klucz_z_themoviedb
@@ -175,13 +181,18 @@ SUPABASE_URL=https://abcdefgh.supabase.co
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-**Uruchomienie:**
+**Krok 2 — uruchom serwer:**
 
 ```bash
-npm install -g netlify-cli    # jednorazowo
-netlify login
-netlify dev                   # → http://localhost:8888
+node server.js
 ```
+
+Aplikacja dostępna pod adresem: **http://localhost:3000**
+
+Serwer obsługuje:
+- `/api/config` — zwraca klucze Supabase z `.env`
+- `/api/movies` — proxy do TMDB API
+- wszystkie pliki statyczne (HTML, CSS, JS)
 
 > Pliki zaczynające się od kropki są domyślnie ukryte w macOS.
 > W Finderze: **Cmd + Shift + .** przełącza ich widoczność.

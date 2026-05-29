@@ -94,12 +94,13 @@ async function startCreateSession(genre) {
     if (!movies.length) throw new Error("Brak filmów dla wybranego gatunku.");
 
     const sessionId = randomCode();
-    await sb.from("sessions").insert({
+    const { error: insertError } = await sb.from("sessions").insert({
       id:       sessionId,
       genre_id: genre.id,
       movies:   movies,
       player_count: 1,
     });
+    if (insertError) throw new Error("Nie można zapisać sesji: " + insertError.message);
 
     state.sessionId    = sessionId;
     state.userId       = 1;
