@@ -1,1 +1,35 @@
 docs/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
+# Edytory i IDE
+.idea/
+.vscode/
+*.suo
+*.user
+*.swp
+*.swo
+*~
+
+# Logi
+*.log
+logs/
+
+# Zależności
+node_modules/
+vendor/
+
+# Zmienne środowiskowe
+.env
+.env.local
+.env.*.local
+
+# Build
+dist/
+build/
+*.o
+*.out
