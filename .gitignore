@@ -28,6 +28,9 @@ vendor/
 .env.local
 .env.*.local
 
+# Claude Code (lokalne ustawienia projektu)
+.claude/settings.local.json
+
 # Build
 dist/
 build/

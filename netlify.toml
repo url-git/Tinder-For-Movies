@@ -1,0 +1,9 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+# Przekieruj /api/* na funkcje Netlify
+[[redirects]]
+  from = "/api/:splat"
+  to   = "/.netlify/functions/:splat"
+  status = 200

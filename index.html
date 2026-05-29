@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CineMatch – Tinder dla filmów</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===== LANDING ===== -->
+  <div id="screen-landing" class="screen active">
+    <div class="landing-bg"></div>
+    <div class="landing-content">
+      <div class="logo-block">
+        <div class="logo-icon">🎬</div>
+        <h1 class="logo-title">CineMatch</h1>
+        <p class="logo-sub">Znajdź film, który pokocha was oboje</p>
+      </div>
+      <div class="landing-actions">
+        <button class="btn btn-primary" onclick="showCreateFlow()">
+          <span>Utwórz sesję</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+        <button class="btn btn-ghost" onclick="showScreen('join')">Dołącz do sesji →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CATEGORY ===== -->
+  <div id="screen-category" class="screen">
+    <div class="page-header">
+      <button class="btn-back" onclick="showScreen('landing')">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <h2>Co chcecie dziś oglądać?</h2>
+    </div>
+    <div class="genre-grid" id="genre-grid"></div>
+  </div>
+
+  <!-- ===== JOIN ===== -->
+  <div id="screen-join" class="screen">
+    <div class="page-header">
+      <button class="btn-back" onclick="showScreen('landing')">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <h2>Dołącz do sesji</h2>
+    </div>
+    <div class="join-container">
+      <p class="join-hint">Wpisz 6-znakowy kod od swojego partnera</p>
+      <div class="code-input-group">
+        <input id="join-input" type="text" maxlength="6" placeholder="ABC123" autocomplete="off" spellcheck="false" />
+        <button class="btn btn-primary" onclick="joinSession()">Dołącz</button>
+      </div>
+      <p id="join-error" class="error-text hidden"></p>
+    </div>
+  </div>
+
+  <!-- ===== WAITING ===== -->
+  <div id="screen-waiting" class="screen">
+    <div class="waiting-container">
+      <div class="waiting-icon">⏳</div>
+      <h2>Czekam na partnera…</h2>
+      <p class="waiting-sub">Udostępnij kod sesji drugiej osobie</p>
+      <div class="code-display-card">
+        <span class="code-label">Kod sesji</span>
+        <span class="code-value" id="waiting-code">------</span>
+      </div>
+      <button class="btn btn-ghost" onclick="copyCode()">📋 Kopiuj kod</button>
+      <div class="pulse-ring"></div>
+    </div>
+  </div>
+
+  <!-- ===== SWIPING ===== -->
+  <div id="screen-swiping" class="screen">
+    <div class="swipe-header">
+      <div class="session-info">
+        <span class="session-badge" id="swiping-session-badge"></span>
+        <span class="player-badge" id="swiping-player-badge"></span>
+      </div>
+      <span class="progress-text" id="swiping-progress"></span>
+    </div>
+
+    <div class="card-area">
+      <div class="card-stack" id="card-stack">
+        <!-- karty generowane przez JS -->
+      </div>
+    </div>
+
+    <div id="partner-status" class="partner-status hidden"></div>
+
+    <div class="swipe-controls">
+      <button class="ctrl-btn ctrl-dislike" id="btn-dislike" onclick="vote('dislike')">
+        <span class="ctrl-icon">✕</span>
+      </button>
+      <button class="ctrl-btn ctrl-trailer" onclick="openTrailer()">
+        <span class="ctrl-icon">▶</span>
+        <span class="ctrl-label">Zwiastun</span>
+      </button>
+      <button class="ctrl-btn ctrl-like" id="btn-like" onclick="vote('like')">
+        <span class="ctrl-icon">♥</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== MATCH ===== -->
+  <div id="screen-match" class="screen">
+    <div class="match-bg"></div>
+    <div class="match-content">
+      <div class="match-badge">To dopasowanie 🎬</div>
+      <div class="match-poster-wrap">
+        <img id="match-poster" src="" alt="plakat" />
+        <div class="match-glow"></div>
+      </div>
+      <h2 class="match-title" id="match-title"></h2>
+      <p class="match-subtitle" id="match-year"></p>
+      <div class="match-actions">
+        <button class="btn btn-primary" onclick="continueSwipping()">Kontynuuj przeglądanie</button>
+        <button class="btn btn-ghost" onclick="restartSession()">Zacznij od nowa</button>
+      </div>
+    </div>
+    <div class="confetti-container" id="confetti-container"></div>
+  </div>
+
+  <!-- ===== FINISHED ===== -->
+  <div id="screen-finished" class="screen">
+    <div class="finished-content">
+      <div class="finished-icon">🎉</div>
+      <h2>Koniec listy!</h2>
+      <p>Przejrzeliście wszystkie filmy w tej sesji.</p>
+      <button class="btn btn-primary" onclick="restartSession()">Zacznij od nowa</button>
+    </div>
+  </div>
+
+  <!-- ===== LOADING OVERLAY ===== -->
+  <div id="loading-overlay" class="loading-overlay hidden">
+    <div class="loader-ring"></div>
+    <p id="loading-text">Ładowanie…</p>
+  </div>
+
+  <!-- ===== TOAST ===== -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="script.js"></script>
+</body>
+</html>
