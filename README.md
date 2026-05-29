@@ -14,6 +14,75 @@ w zmiennych środowiskowych i nigdy nie trafiają do repozytorium.
 
 ---
 
+## Architektura projektu
+
+```
+Tinder-For-Movies/
+│
+├── index.html                       # Cała struktura HTML aplikacji
+│                                    # Zawiera 7 ekranów: landing, wybór gatunku,
+│                                    # dołącz do sesji, oczekiwanie, swipowanie,
+│                                    # dopasowanie, koniec listy
+│
+├── style.css                        # Wszystkie style aplikacji
+│                                    # Ciemny motyw premium, animacje kart,
+│                                    # efekty swipe w lewo/prawo, konfetti
+│
+├── script.js                        # Cała logika aplikacji (Vanilla JS)
+│                                    # Zarządzanie sesją, pobieranie filmów,
+│                                    # głosowanie, wykrywanie dopasowań,
+│                                    # komunikacja z Supabase w czasie rzeczywistym
+│
+├── netlify/
+│   └── functions/
+│       ├── movies.js                # Funkcja serverless: proxy do TMDB API
+│       │                            # Ukrywa klucz TMDB_API_KEY po stronie serwera
+│       │                            # Dostępna pod: /api/movies?genre=28
+│       │
+│       └── config.js                # Funkcja serverless: serwuje klucze Supabase
+│                                    # Frontend pobiera je przy starcie aplikacji
+│                                    # Dostępna pod: /api/config
+│
+├── netlify.toml                     # Konfiguracja Netlify
+│                                    # Ustawia katalog funkcji i przekierowania:
+│                                    # /api/* → /.netlify/functions/*
+│
+├── supabase.sql                     # Schemat bazy danych do uruchomienia w Supabase
+│                                    # Tworzy tabele: sessions, votes
+│                                    # Konfiguruje RLS (bezpieczeństwo) i Realtime
+│
+├── .env.example                     # Szablon zmiennych środowiskowych
+│                                    # Pokazuje jakich kluczy potrzebuje projekt
+│                                    # Bezpieczny do commitowania — bez prawdziwych wartości
+│
+├── .env                             # Twoje lokalne klucze API (NIE w repo, w .gitignore)
+│                                    # Tworzysz go sam na podstawie .env.example
+│                                    # Używany tylko przy lokalnym uruchomieniu (netlify dev)
+│
+├── .gitignore                       # Lista plików pomijanych przez Git
+│                                    # Chroni m.in. .env przed trafieniem do repo
+│
+└── README.md                        # Ten plik — dokumentacja projektu
+```
+
+### Jak przepływają dane
+
+```
+Przeglądarka
+    │
+    ├─► /api/config       → config.js (Netlify Function)
+    │                              └─► zwraca SUPABASE_URL + SUPABASE_ANON_KEY z env vars
+    │
+    ├─► /api/movies       → movies.js (Netlify Function)
+    │                              └─► odpytuje TMDB API kluczem TMDB_API_KEY z env vars
+    │
+    └─► Supabase (realtime)
+                           └─► tabela sessions — lista filmów, liczba graczy
+                           └─► tabela votes — głosy obu graczy, wykrywanie dopasowań
+```
+
+---
+
 ## Wymagane konta i klucze
 
 Przed startem zarejestruj się i pobierz klucze z trzech serwisów:
@@ -24,16 +93,14 @@ Przed startem zarejestruj się i pobierz klucze z trzech serwisów:
 | [supabase.com](https://supabase.com/dashboard) | Project URL + anon key | Project Settings → API |
 | [netlify.com](https://app.netlify.com) | konto do deploymentu | — |
 
-Masz trzy klucze do zebrania. Będziesz je używał w krokach poniżej.
-
 ---
 
 ## Krok 1 – Supabase: utwórz bazę danych
 
 1. Zaloguj się na [supabase.com/dashboard](https://supabase.com/dashboard) i utwórz nowy projekt.
 2. W lewym menu kliknij **SQL Editor**.
-3. Otwórz plik `supabase.sql` z tego repozytorium, zaznacz całą zawartość, skopiuj i wklej do edytora. Kliknij **Run**.
-4. Przejdź do **Project Settings → API** i skopiuj dwie wartości — będą potrzebne w kroku 2:
+3. Otwórz plik `supabase.sql` z tego repozytorium, skopiuj całą zawartość i wklej do edytora. Kliknij **Run**.
+4. Przejdź do **Project Settings → API** i skopiuj dwie wartości:
    - **Project URL** (wygląda tak: `https://abcdefgh.supabase.co`)
    - **anon / public** key (długi ciąg zaczynający się od `eyJ...`)
 
@@ -50,13 +117,14 @@ Masz trzy klucze do zebrania. Będziesz je używał w krokach poniżej.
    - **Base directory**: *(zostaw puste)*
    - **Build command**: *(zostaw puste)*
    - **Publish directory**: `.`
+5. Kliknij **Deploy** i poczekaj na zakończenie pierwszego wdrożenia.
 
-### 2b. Dodaj klucze API — jeszcze przed deployem
+### 2b. Dodaj klucze API w ustawieniach projektu
 
-Na tym samym ekranie, przed kliknięciem Deploy, zobaczysz sekcję **Environment variables**.
-Dodaj klucze teraz — dzięki temu pierwsze wdrożenie od razu zadziała poprawnie.
+Po zakończeniu deployu przejdź do:
+**Project configuration → Environment variables → Add a variable**
 
-Kliknij **Add environment variables** i dodaj trzy zmienne:
+Dodaj trzy zmienne, każdą oznacz jako **Secret** i kliknij **Save variable**:
 
 **Zmienna 1**
 - Key: `TMDB_API_KEY`
@@ -64,19 +132,22 @@ Kliknij **Add environment variables** i dodaj trzy zmienne:
 
 **Zmienna 2**
 - Key: `SUPABASE_URL`
-- Value: *(Project URL skopiowany z Supabase, np. `https://abcdefgh.supabase.co`)*
+- Value: *(Project URL z Supabase, samo `https://abcdefgh.supabase.co` — bez `/rest/v1/` na końcu)*
 
 **Zmienna 3**
 - Key: `SUPABASE_ANON_KEY`
-- Value: *(anon key skopiowany z Supabase, zaczyna się od `eyJ...`)*
+- Value: *(anon key z Supabase, zaczyna się od `eyJ...`)*
 
-> **Uwaga:** jeśli Netlify pyta o scope zmiennych, zaznacz **Functions**.
-> Bez tego funkcje serverless nie widzą kluczy i aplikacja nie zadziała.
+> Zmienne możesz też zaimportować zbiorczo przez **Import from .env file** —
+> wklej zawartość swojego lokalnego pliku `.env`.
 
-### 2c. Kliknij Deploy
+### 2c. Wyzwól ponowny deploy
 
-Po dodaniu zmiennych kliknij **Deploy Tinder-For-Movies**.
-Poczekaj ~1–2 minuty. Aplikacja gotowa pod adresem `https://twoja-strona.netlify.app`.
+Po zapisaniu wszystkich zmiennych aplikacja potrzebuje nowego deployu, żeby je załadować:
+
+1. Przejdź do zakładki **Deploys**.
+2. Kliknij **Trigger deploy → Deploy site**.
+3. Poczekaj ~1–2 minuty. Aplikacja gotowa pod adresem `https://twoja-strona.netlify.app`.
 
 ---
 
@@ -87,21 +158,16 @@ pliku `.env` — jest to lokalny odpowiednik zmiennych środowiskowych z panelu 
 
 **Czym jest plik `.env`?**
 To zwykły plik tekstowy z kluczami API, który istnieje tylko na Twoim komputerze.
-Nie jest i nie będzie commitowany do repozytorium Git (jest w `.gitignore`).
-Dlatego nie widzisz go w repo — każdy deweloper tworzy go sobie lokalnie sam.
+Nie jest commitowany do repozytorium Git (jest w `.gitignore`).
+Każdy deweloper tworzy go lokalnie na podstawie szablonu `.env.example`.
 
 **Jak go utworzyć:**
-
-W repozytorium znajduje się plik `.env.example` — to gotowy szablon z pustymi wartościami.
-Skopiuj go i nadaj kopii nazwę `.env`:
 
 ```bash
 cp .env.example .env
 ```
 
-Komenda `cp` to po prostu "kopiuj plik" — tworzy nowy plik `.env` na podstawie szablonu.
-
-Następnie otwórz plik `.env` w edytorze (np. VS Code) i wpisz swoje klucze:
+Następnie otwórz plik `.env` w edytorze i wpisz swoje klucze:
 
 ```
 TMDB_API_KEY=tu_wklej_klucz_z_themoviedb
@@ -109,23 +175,13 @@ SUPABASE_URL=https://abcdefgh.supabase.co
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-Plik `.env` możesz też po prostu stworzyć ręcznie w edytorze — bez terminala.
-Utwórz nowy plik, nazwij go `.env` (z kropką na początku), i wklej powyższy blok z uzupełnionymi wartościami.
-
 **Uruchomienie:**
 
 ```bash
-# Zainstaluj Netlify CLI (jednorazowo)
-npm install -g netlify-cli
+npm install -g netlify-cli    # jednorazowo
 netlify login
-
-# Uruchom lokalnie
-netlify dev
+netlify dev                   # → http://localhost:8888
 ```
 
-Aplikacja dostępna pod `http://localhost:8888`.
-
-> Jeśli nie widzisz pliku `.env` w Finderze ani edytorze — to dlatego, że pliki
-> zaczynające się od kropki są domyślnie ukryte w macOS.
-> W Finderze: **Cmd + Shift + .** (kropka) przełącza ich widoczność.
-> W VS Code są widoczne normalnie w panelu plików po lewej stronie.
+> Pliki zaczynające się od kropki są domyślnie ukryte w macOS.
+> W Finderze: **Cmd + Shift + .** przełącza ich widoczność.
