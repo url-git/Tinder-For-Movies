@@ -244,7 +244,9 @@ function renderCards() {
     stack.appendChild(buildCard(movies[idx + 1], false));
   }
   // karta aktywna (na wierzchu)
-  stack.appendChild(buildCard(movies[idx], true));
+  const topCard = buildCard(movies[idx], true);
+  initSwipeGesture(topCard);
+  stack.appendChild(topCard);
 }
 
 function buildCard(movie, isTop) {
@@ -279,6 +281,79 @@ function buildCard(movie, isTop) {
     <div class="card-vote-overlay card-vote-dislike"><span class="card-vote-stamp">NOPE</span></div>
   `;
   return card;
+}
+
+// ── SWIPE GESTURE ─────────────────────────────────────────────
+function initSwipeGesture(card) {
+  let startX = 0, currentX = 0, isDragging = false;
+  const THRESHOLD = 90;
+
+  function onMove(x) {
+    if (!isDragging) return;
+    currentX = x;
+    const deltaX = currentX - startX;
+    const rotate = deltaX * 0.08;
+    card.style.transform = `translateX(${deltaX}px) rotate(${rotate}deg)`;
+
+    const likeEl    = card.querySelector(".card-vote-like");
+    const dislikeEl = card.querySelector(".card-vote-dislike");
+    if (deltaX > 0) {
+      likeEl.style.opacity    = Math.min(deltaX / THRESHOLD, 1);
+      dislikeEl.style.opacity = 0;
+    } else {
+      dislikeEl.style.opacity = Math.min(-deltaX / THRESHOLD, 1);
+      likeEl.style.opacity    = 0;
+    }
+  }
+
+  function onEnd() {
+    if (!isDragging) return;
+    isDragging = false;
+    document.removeEventListener("mousemove", onMouseMove);
+    document.removeEventListener("mouseup", onEnd);
+
+    const deltaX = currentX - startX;
+    card.style.transition = "";
+
+    if (deltaX > THRESHOLD) {
+      card.style.transform = "";
+      vote("like");
+    } else if (deltaX < -THRESHOLD) {
+      card.style.transform = "";
+      vote("dislike");
+    } else {
+      card.style.transform = "";
+      card.querySelector(".card-vote-like").style.opacity    = 0;
+      card.querySelector(".card-vote-dislike").style.opacity = 0;
+    }
+  }
+
+  function onMouseMove(e) { onMove(e.clientX); }
+
+  // Mouse
+  card.addEventListener("mousedown", e => {
+    if (state.isAnimating) return;
+    e.preventDefault();
+    startX = e.clientX; currentX = e.clientX;
+    isDragging = true;
+    card.style.transition = "none";
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onEnd);
+  });
+
+  // Touch
+  card.addEventListener("touchstart", e => {
+    if (state.isAnimating) return;
+    startX = e.touches[0].clientX; currentX = e.touches[0].clientX;
+    isDragging = true;
+    card.style.transition = "none";
+  }, { passive: true });
+
+  card.addEventListener("touchmove", e => {
+    onMove(e.touches[0].clientX);
+  }, { passive: true });
+
+  card.addEventListener("touchend", onEnd);
 }
 
 // ── VOTE ──────────────────────────────────────────────────────
@@ -398,18 +473,18 @@ async function fetchMovies(genreId) {
 
 // ── SESSION PERSISTENCE ───────────────────────────────────────
 function saveLocal() {
-  localStorage.setItem("cinematch_session", JSON.stringify({
+  sessionStorage.setItem("cinematch_session", JSON.stringify({
     sessionId:    state.sessionId,
     userId:       state.userId,
   }));
 }
 
 function clearLocal() {
-  localStorage.removeItem("cinematch_session");
+  sessionStorage.removeItem("cinematch_session");
 }
 
 async function tryRestoreSession() {
-  const raw = localStorage.getItem("cinematch_session");
+  const raw = sessionStorage.getItem("cinematch_session");
   if (!raw) return false;
 
   try {
@@ -434,6 +509,7 @@ async function tryRestoreSession() {
       state.currentIndex++;
     }
 
+    history.replaceState({}, "", `/?session=${sessionId}`);
     hideLoading();
     startSwiping();
     subscribeToSession();
